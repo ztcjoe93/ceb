@@ -18,4 +18,5 @@ Ensure that the following variables are configured:
 
 | Command | Description | Syntax | 
 | --- | --- | --- |
-| `/record` | Insert an expense record into Google sheets | `item, price, comment` |
+| `/expenses` | Insert an expense record into Google sheets | `item, price, comment(optional)` |
+| `/weight` | Insert a weight record into Google sheets | `weight, comment(optional)` |
