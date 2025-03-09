@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,14 +22,33 @@ var (
 	ctx                       context.Context = context.Background()
 )
 
-func createValues(item string, price string, comment string) sheets.ValueRange {
+func createExpenseValue(item string, price string, comment ...string) sheets.ValueRange {
 	sgtTz, _ := time.LoadLocation("Asia/Singapore")
-	dateTime := time.Now().In(sgtTz).Format("2006/01/02 15:04:05")
+	dateTime := time.Now().In(sgtTz)
 
-	return sheets.ValueRange{Values: [][]interface{}{{dateTime, item, price, comment}}}
+	price64, _ := strconv.ParseFloat(price, 64)
+
+	if len(comment) > 0 {
+		return sheets.ValueRange{Values: [][]interface{}{{dateTime, item, price64, comment[0]}}}
+	} else {
+		return sheets.ValueRange{Values: [][]interface{}{{dateTime, item, price64}}}
+	}
 }
 
-func insertValuesToExpensesSheet(values sheets.ValueRange) bool {
+func createWeightValue(weight string, comment ...string) sheets.ValueRange {
+	sgtTz, _ := time.LoadLocation("Asia/Singapore")
+	dateTime := time.Now().In(sgtTz)
+
+	weight64, _ := strconv.ParseFloat(weight, 64)
+
+	if len(comment) > 0 {
+		return sheets.ValueRange{Values: [][]interface{}{{dateTime, weight64, comment[0]}}}
+	} else {
+		return sheets.ValueRange{Values: [][]interface{}{{dateTime, weight64}}}
+	}
+}
+
+func insertValuesToSheet(sheetType string, values sheets.ValueRange) bool {
 	config := &jwt.Config{
 		Email:        SVC_ACC_EMAIL,
 		PrivateKey:   []byte(strings.ReplaceAll(SVC_ACC_KEY, `\n`, "\n")),
@@ -45,7 +65,17 @@ func insertValuesToExpensesSheet(values sheets.ValueRange) bool {
 		return false
 	}
 
-	resp, err := service.Spreadsheets.Values.Append(SHEETS_ID, "01_expenses!A1:D1", &values).
+	var sheetRange string
+	switch sheetType {
+	case "/expenses":
+		sheetRange = "expenses!A1:D1"
+	case "/weight":
+		sheetRange = "weight!A1:B1"
+	default:
+		logger.Errorf("Invalid sheetType: %v", sheetType)
+	}
+
+	resp, err := service.Spreadsheets.Values.Append(SHEETS_ID, sheetRange, &values).
 		ValueInputOption(SHEETS_VALUE_INPUT_OPTION).
 		InsertDataOption(SHEETS_INSERT_DATA_OPTION).
 		Context(ctx).Do()

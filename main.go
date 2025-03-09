@@ -102,24 +102,44 @@ func handleCommand(chatId int64, command string) error {
 	cmd := matches[1]
 	args := strings.Split(matches[2], ",")
 
+	var cleanArgs []string
+	for _, arg := range args {
+		cleanArgs = append(cleanArgs, strings.TrimSpace(arg))
+	}
+	args = cleanArgs
+
 	switch cmd {
-	case "/record":
-		logger.Info("Received /record invocation")
-		err = saveRecord(chatId, args)
+	case "/expenses":
+		logger.Info("Received valid expenses invocation")
+		err = saveRecord(chatId, cmd, args)
+	case "/weight":
+		logger.Info("Received valid weight invocation")
+		err = saveRecord(chatId, cmd, args)
 	}
 
 	return err
 }
 
-func saveRecord(chatId int64, args []string) error {
+func saveRecord(chatId int64, cmd string, args []string) error {
 	var values sheets.ValueRange
 
-	if len(args) > 2 {
-		values = createValues(args[0], args[1], args[2])
-	} else {
-		values = createValues(args[0], args[1], "")
+	if cmd == "/expenses" {
+		if len(args) > 2 {
+			values = createExpenseValue(args[0], args[1], args[2])
+		} else {
+			values = createExpenseValue(args[0], args[1])
+		}
+	} else if cmd == "/weight" {
+		if len(args) > 1 {
+			values = createWeightValue(args[0], args[1])
+		} else {
+			values = createWeightValue(args[0])
+		}
 	}
-	success := insertValuesToExpensesSheet(values)
+
+	logger.Infof("%v", values)
+
+	success := insertValuesToSheet(cmd, values)
 
 	var msg tgbotapi.MessageConfig
 	if success {
